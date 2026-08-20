@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- podcast compatibility proxy synthetic fixture, representative of a Megaphone feed -->
+<!DOCTYPE rss PUBLIC "-//Megaphone//DTD RSS Podcast 2.0//EN" "https://example.invalid/dtd/podcast.dtd">
+<?xml-stylesheet type="text/xsl" href="https://example.invalid/style.xsl"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
+     xmlns:media="http://search.yahoo.com/mrss/"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0"
+     xmlns:podcast="https://podcastindex.org/namespace/1.0"
+     version="2.0">
+  <channel>
+    <title><![CDATA[The Synthetic Podcast]]></title>
+    <link>https://example.invalid/show</link>
+    <description>Sanitized synthetic fixture for rss-proxy tests.</description>
+    <language>en-us</language>
+    <atom:link href="https://example.invalid/feed.xml" rel="self" type="application/rss+xml"/>
+    <image>
+      <url>https://cdn.example.invalid/channel-art.jpg</url>
+      <title>The Synthetic Podcast</title>
+      <link>https://example.invalid/show</link>
+    </image>
+    <itunes:author>Robin Diddams</itunes:author>
+    <itunes:summary>Edge cases for legacy clients.</itunes:summary>
+    <itunes:image href="https://cdn.example.invalid/itunes-art.jpg"/>
+    <googleplay:image href="https://cdn.example.invalid/gp-art.jpg"/>
+    <itunes:category text="Technology"/>
+    <itunes:explicit>false</itunes:explicit>
+    <podcast:guid>show-1234</podcast:guid>
+    <!-- an unknown extension element that must be preserved verbatim -->
+    <media:rating scheme="urn:simple">adult</media:rating>
+
+    <item>
+      <title>Episode One: Quotes &amp; Ampersands</title>
+      <link>https://example.invalid/episodes/1</link>
+      <description>Episode with a single quote ' and a double quote &quot; inside.</description>
+      <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
+      <guid isPermaLink="false">ep-001</guid>
+      <itunes:duration>00:42:13</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:image href="https://cdn.example.invalid/ep1-art.jpg"/>
+      <enclosure url="https://cdn.example.invalid/audio/ep1.mp3?t=1&amp;u=2" length="5120000" type="audio/mpeg"/>
+      <media:content url="https://cdn.example.invalid/audio/ep1.mp3?t=1&amp;u=2" fileSize="5120000" type="audio/mpeg" medium="audio"/>
+      <media:thumbnail url="https://cdn.example.invalid/ep1-thumb.jpg" width="300" height="300"/>
+      <content:encoded><![CDATA[<p>Shownotes with a link: <a href="https://example.invalid/notes/1">read more</a></p>]]></content:encoded>
+      <podcast:chapters url="https://example.invalid/chapters/1.json" type="application/json+chapters"/>
+    </item>
+
+    <item>
+      <title>Episode Two</title>
+      <enclosure url="https://cdn.example.invalid/audio/ep2.mp3?ref='single'&amp;q=&quot;double&quot;" length="7340032" type="audio/mpeg"/>
+      <itunes:duration>3611</itunes:duration>
+      <guid>ep-002</guid>
+      <pubDate>Wed, 03 Jan 2024 00:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
