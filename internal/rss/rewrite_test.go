@@ -287,6 +287,18 @@ func TestRewrite_MalformedXML(t *testing.T) {
 	}
 }
 
+func TestRewrite_MismatchedButBalancedTags(t *testing.T) {
+	// Numerically balanced stack depth but end tags don't match start tags.
+	in := `<?xml version="1.0"?><rss version="2.0"><channel><a><b></a></b></channel></rss>`
+	p := defaultPolicy()
+	gen := mustProxy(t, "http://h:1")
+	rw := &rss.Rewriter{Policy: p, Proxy: gen}
+	_, err := rw.Rewrite(bytes.NewReader([]byte(in)))
+	if err == nil {
+		t.Fatal("expected error for mismatched but balanced tags")
+	}
+}
+
 func TestRewrite_OversizedFeed(t *testing.T) {
 	// Huge text node; rewriter reads everything but the caller enforces size.
 	// Here we verify the rewriter itself tolerates a large feed; the size limit

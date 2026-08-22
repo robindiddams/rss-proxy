@@ -150,10 +150,16 @@ func emitToken(sb *strings.Builder, st *state, tok xml.Token) error {
 		return nil
 
 	case xml.EndElement:
-		writeEnd(sb, t.Name)
-		if len(st.stack) > 0 {
-			st.stack = st.stack[:len(st.stack)-1]
+		if len(st.stack) == 0 {
+			return fmt.Errorf("xml parse: end tag </%s> with empty stack", qname(t.Name))
 		}
+		top := st.stack[len(st.stack)-1]
+		if top.prefix != t.Name.Space || top.local != t.Name.Local {
+			return fmt.Errorf("xml parse: mismatched end tag </%s>, expected </%s>",
+				qname(t.Name), endQname(top))
+		}
+		writeEnd(sb, t.Name)
+		st.stack = st.stack[:len(st.stack)-1]
 		st.popScope()
 		return nil
 
@@ -309,6 +315,13 @@ func qname(n xml.Name) string {
 		return n.Space + ":" + n.Local
 	}
 	return n.Local
+}
+
+func endQname(e elem) string {
+	if e.prefix != "" {
+		return e.prefix + ":" + e.local
+	}
+	return e.local
 }
 
 func attrQName(n xml.Name) string {

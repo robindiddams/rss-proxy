@@ -12,11 +12,6 @@ import (
 	"github.com/robindiddams/rss-proxy/internal/upstream"
 )
 
-// MaxMediaBytes is a generous safety cap for a single media stream. Real media
-// is streamed incrementally and Range requests bound it; this only guards
-// against a misbehaving upstream that never ends.
-const MaxMediaBytes = 1024 * 1024 * 1024 * 2 // 2 GiB
-
 // Headers to forward from the client request to the upstream.
 var forwardRequestHeaders = []string{
 	"Range", "If-Range", "If-Modified-Since", "If-None-Match",
@@ -77,9 +72,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Stream with downstream cancellation awareness and a safety cap.
-	reader := io.LimitReader(resp.Body, MaxMediaBytes)
-	_, copyErr := copyWithCancel(ctx, w, reader)
+	// Stream with downstream cancellation awareness. No size cap: this is a
+	// trusted home-network deployment and the spec mandates a feed size limit,
+	// not a media limit. A silent truncation cap would break long episodes.
+	_, copyErr := copyWithCancel(ctx, w, resp.Body)
 	if copyErr != nil {
 		// Client gone or copy error. Nothing useful to write to a started response.
 		// Context cancellation is expected when the client disconnects.

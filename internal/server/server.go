@@ -193,7 +193,10 @@ func (s *Server) feed(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), s.Config.FeedTimeout)
 	defer cancel()
 
-	resp, err := s.Client.Fetch(ctx, r.Method, raw, reqHeaders)
+	// Always fetch upstream as GET: HEAD upstream would give an empty body,
+	// so we could not compute the rewritten Content-Length. For a downstream
+	// HEAD we suppress only the body after computing the same headers as GET.
+	resp, err := s.Client.Fetch(ctx, http.MethodGet, raw, reqHeaders)
 	if err != nil {
 		s.Logf("feed: upstream error for %s: %v", raw, err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)

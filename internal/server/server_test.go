@@ -118,6 +118,12 @@ func TestFeed_GET_HEAD(t *testing.T) {
 	if head.Header.Get("ETag") != `"abc"` {
 		t.Errorf("HEAD ETag not preserved")
 	}
+	if head.Header.Get("Content-Length") != resp.Header.Get("Content-Length") {
+		t.Errorf("HEAD Content-Length %q != GET %q", head.Header.Get("Content-Length"), resp.Header.Get("Content-Length"))
+	}
+	if head.Header.Get("Content-Type") != resp.Header.Get("Content-Type") {
+		t.Errorf("HEAD Content-Type %q != GET %q", head.Header.Get("Content-Type"), resp.Header.Get("Content-Type"))
+	}
 }
 
 func TestFeed_Conditional304(t *testing.T) {

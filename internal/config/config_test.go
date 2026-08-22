@@ -3,6 +3,7 @@ package config_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/robindiddams/rss-proxy/internal/config"
 )
@@ -118,5 +119,45 @@ func TestConfig_PathPrefixNormalized(t *testing.T) {
 	}
 	if !strings.HasPrefix(c.PublicBaseURL, "http://localhost:8080/proxy") {
 		t.Errorf("base = %q", c.PublicBaseURL)
+	}
+}
+
+func TestConfig_InvalidEnvValuesFail(t *testing.T) {
+	cases := []struct {
+		key, val, want string
+	}{
+		{"RSS_PROXY_FEED_TIMEOUT", "notaduration", "invalid duration"},
+		{"RSS_PROXY_MAX_FEED_BYTES", "notanint", "invalid integer"},
+		{"RSS_PROXY_ALLOW_PRIVATE_IPS", "notabool", "invalid boolean"},
+		{"RSS_PROXY_ALLOW_HTTP_UPSTREAM", "maybe", "invalid boolean"},
+	}
+	for _, tc := range cases {
+		env := map[string]string{"RSS_PROXY_PUBLIC_BASE_URL": "http://localhost:8080"}
+		env[tc.key] = tc.val
+		_, err := load(t, env)
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%s=%s: expected %q error, got %v", tc.key, tc.val, tc.want, err)
+		}
+	}
+}
+
+func TestConfig_ValidEnvValuesAccepted(t *testing.T) {
+	c, err := load(t, map[string]string{
+		"RSS_PROXY_PUBLIC_BASE_URL":   "http://localhost:8080",
+		"RSS_PROXY_FEED_TIMEOUT":      "30s",
+		"RSS_PROXY_MAX_FEED_BYTES":    "2097152",
+		"RSS_PROXY_ALLOW_PRIVATE_IPS": "true",
+	})
+	if err != nil {
+		t.Fatalf("valid env rejected: %v", err)
+	}
+	if c.FeedTimeout != 30*time.Second {
+		t.Errorf("feed timeout = %v", c.FeedTimeout)
+	}
+	if c.MaxFeedBytes != 2097152 {
+		t.Errorf("max feed bytes = %d", c.MaxFeedBytes)
+	}
+	if !c.AllowPrivateIPs {
+		t.Errorf("allow private ips = false")
 	}
 }

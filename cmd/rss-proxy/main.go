@@ -2,11 +2,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/robindiddams/rss-proxy/internal/config"
 	"github.com/robindiddams/rss-proxy/internal/server"
@@ -45,5 +47,11 @@ func main() {
 		}
 	case sig := <-sigCh:
 		logf("rss-proxy: received %s, shutting down", sig)
+		shutCtx, shutCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer shutCancel()
+		if err := srv.Shutdown(shutCtx); err != nil {
+			fmt.Fprintf(os.Stderr, "rss-proxy: shutdown: %v\n", err)
+			os.Exit(1)
+		}
 	}
 }

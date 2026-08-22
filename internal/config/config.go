@@ -28,18 +28,30 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	fs := flag.NewFlagSet("rss-proxy", flag.ContinueOnError)
 	var c Config
 
+	// Resolve env defaults first so invalid env values fail at startup rather
+	// than silently falling back. Flag values (if set) override these.
+	feedTimeout, errDur := envDur(getenv, "RSS_PROXY_FEED_TIMEOUT", 15*time.Second)
+	maxFeedBytes, errInt := envInt(getenv, "RSS_PROXY_MAX_FEED_BYTES", 4*1024*1024)
+	allowPriv, errBoolPriv := envBool(getenv, "RSS_PROXY_ALLOW_PRIVATE_IPS", false)
+	allowHTTP, errBoolHTTP := envBool(getenv, "RSS_PROXY_ALLOW_HTTP_UPSTREAM", false)
+
 	fs.StringVar(&c.ListenAddr, "listen", env(getenv, "RSS_PROXY_LISTEN", ":8080"), "HTTP listen address")
 	fs.StringVar(&c.PublicBaseURL, "public-base-url", env(getenv, "RSS_PROXY_PUBLIC_BASE_URL", ""), "public base URL (http scheme, absolute)")
 	var allowFlag stringSliceFlag
 	fs.Var(&allowFlag, "allow-host", "upstream hostname allowlist (repeatable); env RSS_PROXY_ALLOW_HOSTS comma-separated")
-	fs.DurationVar(&c.FeedTimeout, "feed-timeout", envDur(getenv, "RSS_PROXY_FEED_TIMEOUT", 15*time.Second), "feed fetch timeout")
-	fs.Int64Var(&c.MaxFeedBytes, "max-feed-bytes", envInt(getenv, "RSS_PROXY_MAX_FEED_BYTES", 4*1024*1024), "maximum feed size in bytes")
+	fs.DurationVar(&c.FeedTimeout, "feed-timeout", feedTimeout, "feed fetch timeout")
+	fs.Int64Var(&c.MaxFeedBytes, "max-feed-bytes", maxFeedBytes, "maximum feed size in bytes")
 	fs.StringVar(&c.UserAgent, "user-agent", env(getenv, "RSS_PROXY_USER_AGENT", "rss-proxy/1.0 (podcast compatibility proxy)"), "upstream User-Agent")
-	fs.BoolVar(&c.AllowPrivateIPs, "allow-private-ips", envBool(getenv, "RSS_PROXY_ALLOW_PRIVATE_IPS", false), "allow private/loopback upstream addresses (local testing)")
-	fs.BoolVar(&c.AllowHTTPUpstream, "allow-http-upstream", envBool(getenv, "RSS_PROXY_ALLOW_HTTP_UPSTREAM", false), "allow plain-http upstream schemes (local testing)")
+	fs.BoolVar(&c.AllowPrivateIPs, "allow-private-ips", allowPriv, "allow private/loopback upstream addresses (local testing)")
+	fs.BoolVar(&c.AllowHTTPUpstream, "allow-http-upstream", allowHTTP, "allow plain-http upstream schemes (local testing)")
 
 	if err := fs.Parse(args); err != nil {
 		return c, err
+	}
+	for _, e := range []error{errDur, errInt, errBoolPriv, errBoolHTTP} {
+		if e != nil {
+			return c, e
+		}
 	}
 	c.UpstreamAllow = allowFlag
 
@@ -108,38 +120,44 @@ func env(g func(string) string, key, def string) string {
 	}
 	return def
 }
-func envDur(g func(string) string, key string, def time.Duration) time.Duration {
+func envDur(g func(string) string, key string, def time.Duration) (time.Duration, error) {
 	if g == nil {
-		return def
+		return def, nil
 	}
 	if v := g(key); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			return d
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			return def, fmt.Errorf("%s: invalid duration %q: %w", key, v, err)
 		}
+		return d, nil
 	}
-	return def
+	return def, nil
 }
-func envInt(g func(string) string, key string, def int64) int64 {
+func envInt(g func(string) string, key string, def int64) (int64, error) {
 	if g == nil {
-		return def
+		return def, nil
 	}
 	if v := g(key); v != "" {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-			return n
+		n, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return def, fmt.Errorf("%s: invalid integer %q: %w", key, v, err)
 		}
+		return n, nil
 	}
-	return def
+	return def, nil
 }
-func envBool(g func(string) string, key string, def bool) bool {
+func envBool(g func(string) string, key string, def bool) (bool, error) {
 	if g == nil {
-		return def
+		return def, nil
 	}
 	if v := g(key); v != "" {
-		if b, err := strconv.ParseBool(v); err == nil {
-			return b
+		b, err := strconv.ParseBool(v)
+		if err != nil {
+			return def, fmt.Errorf("%s: invalid boolean %q: %w", key, v, err)
 		}
+		return b, nil
 	}
-	return def
+	return def, nil
 }
 
 func splitCSV(s string) []string {
