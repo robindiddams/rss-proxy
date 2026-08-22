@@ -59,7 +59,7 @@ func New(cfg *config.Config, logf func(string, ...any)) (*Server, error) {
 	mux.Handle("/media/untls/", s.Media)
 	s.httpSrv = &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           mux,
+		Handler:           s.logRequests(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	return s, nil
@@ -105,6 +105,49 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(indexPage(result, feedURL)))
+}
+
+// logRequests wraps h with per-request logging: method, path, remote addr,
+// status, size, and duration.
+func (s *Server) logRequests(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rw := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		h.ServeHTTP(rw, r)
+		s.Logf("%s %s %s -> %d %dB %s",
+			clientIP(r), r.Method, r.URL.RequestURI(),
+			rw.status, rw.size, time.Since(start).Round(time.Millisecond))
+	})
+}
+
+func clientIP(r *http.Request) string {
+	if ip := r.RemoteAddr; ip != "" {
+		return ip
+	}
+	return "?"
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *statusRecorder) Write(b []byte) (int, error) {
+	n, err := r.ResponseWriter.Write(b)
+	r.size += n
+	return n, err
+}
+
+func (r *statusRecorder) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
