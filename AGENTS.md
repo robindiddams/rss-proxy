@@ -83,3 +83,11 @@ curl 'http://localhost:8080/rss/untls?url=https%3A%2F%2Ffeeds.megaphone.fm%2FTBI
 For local testing against loopback/HTTP upstreams, the binary supports
 `--allow-private-ips` and `--allow-http-upstream` test switches (not exposed
 by install.sh; pass them via env or run the binary directly).
+
+If episodes fail to download with a 502 but the feed itself loads, an
+upstream redirect is likely landing on a host not in your `--allow-hosts`
+list. Podcast ad-tracking redirect chains (e.g. Megaphone's pdst.fm →
+clrtpod.com → ... → dcs-spotify.megaphone.fm) rotate hosts frequently.
+On a trusted home network the simplest fix is to leave `--allow-hosts`
+empty (the default) so any policy-compliant public host is allowed; the
+address policy still blocks private/loopback/local destinations.

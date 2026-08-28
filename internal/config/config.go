@@ -12,13 +12,13 @@ import (
 
 // Config is the validated runtime configuration.
 type Config struct {
-	ListenAddr       string
-	PublicBaseURL    string // absolute, scheme http, no creds/query/fragment
-	UpstreamAllow    []string
-	FeedTimeout      time.Duration
-	MaxFeedBytes     int64
-	UserAgent        string
-	AllowPrivateIPs  bool
+	ListenAddr        string
+	PublicBaseURL     string // absolute, scheme http, no creds/query/fragment
+	UpstreamAllow     []string
+	FeedTimeout       time.Duration
+	MaxFeedBytes      int64
+	UserAgent         string
+	AllowPrivateIPs   bool
 	AllowHTTPUpstream bool
 }
 
